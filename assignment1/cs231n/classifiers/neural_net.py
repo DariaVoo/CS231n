@@ -77,10 +77,12 @@ class TwoLayerNet(object):
         # TODO: Perform the forward pass, computing the class scores for the input. #
         # Store the result in the scores variable, which should be an array of      #
         # shape (N, C).                                                             #
-        #############################################################################
+        ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        fc_layer = X @ W1 + b1
+        h = np.maximum(0, fc_layer) # ReLU
+        scores = h @ W2 + b2
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -90,6 +92,7 @@ class TwoLayerNet(object):
 
         # Compute the loss
         loss = None
+        #input - fully connected layer - ReLU - fully connected layer - softmax
         #############################################################################
         # TODO: Finish the forward pass, and compute the loss. This should include  #
         # both the data loss and L2 regularization for W1 and W2. Store the result  #
@@ -98,7 +101,18 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        num_classes = W2.shape[1]
+
+        # Softmax
+        scores -= scores.max(axis=1, keepdims=True) # for numerical stability
+        entropy = np.exp(scores) / np.exp(scores).sum(axis=1, keepdims=True)
+        loss_softmax = np.sum(-np.log(entropy[range(N), y]))
+        
+        # mean
+        loss_softmax /= N
+        # Add regularization
+        loss_softmax += reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
+        loss = loss_softmax
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -110,9 +124,26 @@ class TwoLayerNet(object):
         # grads['W1'] should store the gradient on W1, and be a matrix of same size #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+      
+        entropy[range(N), y] -= 1
+        entropy /= N
+        
+        # scores = h @ W2 + b2
+        dW2 = h.T @ entropy 
+        dh = entropy @ W2.T
+        db2 = entropy.sum(axis=0) 
 
-        pass
+        # h = np.maximum(0, fc_layer) # ReLU
+        dfc_layer = dh * (fc_layer > 0)
 
+        # fc_layer = X @ W1 + b1
+        dW1 = X.T @ dfc_layer
+        db1 = 1 * dfc_layer.sum(axis=0)
+
+        # Add regularization
+        dW1 += reg * 2 * W1
+        dW2 += reg * 2 * W2
+        grads = {'W1':dW1, 'b1':db1, 'W2':dW2,'b2':db2}
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         return loss, grads
@@ -156,7 +187,9 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            batch_idexes = np.random.choice(num_train, batch_size)
+            X_batch = X[batch_idexes]
+            y_batch = y[batch_idexes]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -172,7 +205,8 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            for key in self.params:
+              self.params[key] += -learning_rate * grads[key]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -218,7 +252,7 @@ class TwoLayerNet(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        y_pred = np.argmax(self.loss(X), axis=1)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
