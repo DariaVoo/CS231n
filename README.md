@@ -11,7 +11,8 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DariaVoo/CS231n/blob/master/assignment1/softmax.ipynb)
 * [Q4](https://github.com/DariaVoo/CS231n/blob/master/assignment1/two_layer_net.ipynb): Two-Layer Neural Network. (Done)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DariaVoo/CS231n/blob/master/assignment1/two_layer_net.ipynb)
-* Q5: Higher Level Representations: Image Features.
+* [Q5](https://github.com/DariaVoo/CS231n/blob/master/assignment1/features.ipynb): Higher Level Representations: Image Features.
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DariaVoo/CS231n/blob/master/assignment1/features.ipynb)
 
 ### Assignment 2:
 * Q1: Fully-connected Neural Network. 
