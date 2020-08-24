@@ -68,8 +68,9 @@ def sgd_momentum(w, dw, config=None):
     # the next_w variable. You should also use and update the velocity v.     #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
+    
+    v = config["momentum"] * v - config["learning_rate"] * dw
+    next_w = w + v
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -107,8 +108,11 @@ def rmsprop(w, dw, config=None):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    grad_squared = config["decay_rate"] * config["cache"] + \
+                    (1 - config["decay_rate"]) * (dw **2)
+    next_w = w - config["learning_rate"] * dw / (np.sqrt(grad_squared) + config["epsilon"])
 
+    config["cache"] = grad_squared
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -151,9 +155,22 @@ def adam(w, dw, config=None):
     # using it in any calculations.                                           #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    learning_rate, epsilon = config["learning_rate"], config["epsilon"]
+    beta1, beta2 = config['beta1'], config['beta2']
+    m, v = config["m"], config["v"] 
+    t = config["t"]
+    
+    t = t + 1
+    m = beta1 * m + (1 + beta1) * dw # momentum
+    v = beta2 * v + (1 + beta2) * (dw**2) #RMSProp
 
-    pass
+    m_t = m / (1 - beta1 ** t) # bias correction
+    v_t = v / (1 - beta2 ** t)
 
+    # RMSProp
+    next_w = w - learning_rate * m_t / (np.sqrt(v_t) + epsilon)
+
+    config["m"], config["v"], config["t"] = m, v, t
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
