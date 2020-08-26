@@ -15,8 +15,10 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DariaVoo/CS231n/blob/master/assignment1/features.ipynb)
 
 ### Assignment 2:
-* Q1: Fully-connected Neural Network. 
-* Q2: Batch Normalization. 
+* [Q1](https://github.com/DariaVoo/CS231n/blob/master/assignment2/FullyConnectedNets.ipynb): Fully-connected Neural Network.
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DariaVoo/CS231n/blob/master/assignment2/FullyConnectedNets.ipynb)
+* [Q2](https://github.com/DariaVoo/CS231n/blob/master/assignment2/BatchNormalization.ipynb): Batch Normalization.
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DariaVoo/CS231n/blob/master/assignment2/BatchNormalization.ipynb)
 * Q3: Dropout. 
 * Q4: Convolutional Networks. 
 * Q5: PyTorch / TensorFlow on CIFAR-10. 
