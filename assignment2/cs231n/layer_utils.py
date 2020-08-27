@@ -35,33 +35,56 @@ def affine_relu_backward(dout, cache):
     return dx, dw, db
 
 
-def affine_norm_relu_forward(x, w, b, gamma, beta, bn_param):
+def affine_norm_relu_forward(x, w, b, gamma, beta, normalization, bn_param, use_dropout, dropout_param):
     """
     Convenience layer that perorms an affine transform followed by a ReLU
 
     Inputs:
     - x: Input to the affine layer
     - w, b: Weights for the affine layer
+    - gamma, beta, bn_param: Paratemeters for normalization
+    - normalization: Type of normalization
+    - use_dropout: Flag for use drupout or not (0 - no, 1 - yes)
+    - dropout_param: Dropout param
 
     Returns a tuple of:
-    - out: Output from the ReLU
+    - out: Output from the ReLU/Dropout
     - cache: Object to give to the backward pass
     """
+    norm_cache,  drop_cache = None, None
+    
     a, fc_cache = affine_forward(x, w, b)
-    norm, norm_cache = batchnorm_forward(a, gamma, beta, bn_param)
-    out, relu_cache = relu_forward(norm)
-    cache = (fc_cache, norm_cache, relu_cache)
+    if normalization == "batchnorm":
+      a, norm_cache = batchnorm_forward(a, gamma, beta, bn_param)
+    elif normalization == "layernorm":
+      a, norm_cache = layernorm_forward(a, gamma, beta, bn_param)  
+    
+    out, relu_cache = relu_forward(a)
+    if use_dropout:
+      out, drop_cache = dropout_forward(out, dropout_param)
+    
+    cache = (fc_cache, norm_cache, relu_cache, drop_cache)
     return out, cache
 
 
-def affine_norm_relu_backward(dout, cache):
+def affine_norm_relu_backward(dout, cache, normalization, use_dropout):
     """
-    Backward pass for the affine-relu convenience layer
+    Backward pass for the affine-(BatchNorm/LayerNorm)-relu-(Dropout)
+    convenience layer
     """
-    fc_cache, norm_cache, relu_cache = cache
+    dgamma, dbeta = None, None
+    fc_cache, norm_cache, relu_cache, drop_cache = cache
+
+    if use_dropout:
+      dout = dropout_backward(dout, drop_cache)
     da = relu_backward(dout, relu_cache)
-    dnorm, dgamma, dbeta = batchnorm_backward(da, norm_cache)
-    dx, dw, db = affine_backward(dnorm, fc_cache)
+
+    if normalization == "batchnorm":
+      da, dgamma, dbeta = batchnorm_backward(da, norm_cache)
+    elif normalization == "layernorm":
+      da, dgamma, dbeta = batchnorm_backward(da, norm_cache)
+      
+    dx, dw, db = affine_backward(da, fc_cache)
     return dx, dgamma, dbeta, dw, db
 
 

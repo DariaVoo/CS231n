@@ -295,23 +295,24 @@ class FullyConnectedNet(object):
         caches: list = [None] * (self.num_layers + 1)
         scores = X
         
+        gamma, beta, bn_param = None, None, None
         for i in range(1, self.num_layers):
           w = 'W' + str(i)
           b = 'b' + str(i)
           if self.normalization == "batchnorm":
-            gamma = 'gamma' + str(i)
-            beta = 'beta' + str(i)
-            scores, caches[i] = affine_norm_relu_forward(scores, self.params[w],
-                              self.params[b],self.params[gamma], self.params[beta],
-                              self.bn_params[i-1])
-          else:
-            scores, caches[i] = affine_relu_forward(scores, self.params[w], 
-                                                              self.params[b])
+            gamma = self.params['gamma' + str(i)]
+            beta = self.params['beta' + str(i)]
+            bn_param = self.bn_params[i-1]
 
+          scores, caches[i] = affine_norm_relu_forward(scores, self.params[w],
+                              self.params[b], gamma, beta,
+                              self.normalization, bn_param,
+                              self.use_dropout, self.dropout_param)
+ 
         w = 'W' + str(self.num_layers)
         b = 'b' + str(self.num_layers)
         scores, caches[self.num_layers] = affine_forward(scores, self.params[w], 
-                                                            self.params[b])
+                                                            self.params[b])                                        
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -346,16 +347,17 @@ class FullyConnectedNet(object):
         sum_reg += np.sum(self.params[w] ** 2)
         grads[w] += self.reg * self.params[w]
 
+        gamma, beta, bn_params = None, None, None
         for i in range(self.num_layers - 1, 0, -1):
           w = 'W' + str(i)
           b = 'b' + str(i)
-          if self.normalization == "batchnorm":
-            gamma = 'gamma' + str(i)
-            beta = 'beta' + str(i)
-            dscores, grads[gamma], grads[beta], grads[w], grads[b] = affine_norm_relu_backward(dscores, caches[i])
-          else:
-            dscores, grads[w], grads[b] = affine_relu_backward(dscores, caches[i])
+          dscores, dgamma, dbeta, grads[w], grads[b] = affine_norm_relu_backward(
+            dscores, caches[i], self.normalization, self.use_dropout)
           
+          if self.normalization == "batchnorm":
+            grads['gamma' + str(i)] = dgamma
+            grads['beta' + str(i)] = dbeta
+            
           # Add regularization
           sum_reg += np.sum(self.params[w] ** 2)
           grads[w] += self.reg * self.params[w]
