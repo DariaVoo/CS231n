@@ -569,13 +569,37 @@ def conv_forward_naive(x, w, b, conv_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    stride, pad = conv_param['stride'], conv_param['pad']
+    N, C, H, W = x.shape
+    F, C, FH, FW = w.shape
+    
+    assert (W - FW + 2 * pad) % stride == 0
+    assert (H - FH + 2 * pad) % stride == 0
+    outW = int(1 + (W - FW + 2 * pad) / stride)
+    outH = int(1 + (H - FH + 2 * pad) / stride)
+    out = np.zeros((N, F, outH, outW))
+
+    x_pad = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)))
+    _, _, PH, PW = x_pad.shape
+
+    w_row = w.reshape(F, C * FH * FW)
+    x_col = np.zeros((C * FH * FW, outH * outW))
+    for index in range(N):
+      img = x_pad[index]
+      neuron = 0
+      for i in range(0, PW - FW + 1, stride):
+        for j in range(0, PH - FH + 1, stride):
+          x_col[:,neuron] = img[:, i:i+FH, j:j+FW].reshape(C * FH * FW)
+          neuron += 1
+      
+      out[index] = (w_row @ x_col + b.reshape(F, 1)).reshape(F, outH, outW)
+    
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-    cache = (x, w, b, conv_param)
+    cache = (x_pad, w, b, conv_param)
     return out, cache
 
 
@@ -597,8 +621,37 @@ def conv_backward_naive(dout, cache):
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    x_pad, w, b, conv_param = cache
+    stride, pad = conv_param['stride'], conv_param['pad']
+    N, F, outH, outW = dout.shape
+    _, C, PH, PW = x_pad.shape
+    _, _, FH, FW = w.shape
+    
+    dx = np.zeros((N, C, PH - 2 * pad, PW - 2 * pad))
+    dw = np.zeros(w.shape)
+    db = np.zeros(b.shape)
 
-    pass
+    w_row = w.reshape(F, C * FH * FW)
+    x_col = np.zeros((C * FH * FW, outH * outW))
+    for index in range(N):
+      # out[index] = (w_row @ x_col + b.reshape(F, 1)).reshape(F, outH, outW)
+      out_col = dout[index].reshape(F, outH * outW)
+      w_out = w_row.T @ out_col
+
+      dx_col = np.zeros((C, PH, PW))
+      
+      img = x_pad[index]
+      neuron = 0
+      for i in range(0, PW - FW + 1, stride):
+        for j in range(0, PH - FH + 1, stride):
+          # x_col[:,neuron] = img[:, i:i+FH, j:j+FW].reshape(C * FH * FW)
+          dx_col[:, i:i+FH, j:j+FW] += w_out[:, neuron].reshape(C, FH, FW)
+          x_col[:,neuron] = img[:, i:i+FH, j:j+FW].reshape(C * FH * FW)
+          neuron += 1
+      
+      dx[index] = dx_col[:, pad:-pad, pad:-pad]
+      dw += (out_col @ x_col.T).reshape(F, C, FH, FW)
+      db += out_col.sum(axis=1)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -631,8 +684,22 @@ def max_pool_forward_naive(x, pool_param):
     # TODO: Implement the max-pooling forward pass                            #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    N, C, H, W = x.shape
+    stride = pool_param['stride']
+    pool_h, pool_w = pool_param['pool_height'], pool_param['pool_width']
+    outH = int(1 + (H - pool_h) / stride)
+    outW = int(1 + (W - pool_w) / stride)
 
-    pass
+    out = np.zeros((N, C, outH, outW))
+    for index in range(N):
+      out_col = np.zeros((C, outH*outW))
+      neuron = 0
+      for i in range(0, H - pool_h + 1, stride):
+        for j in range(0, W - pool_w + 1, stride):
+          receprive_field = x[index, :, i:i+pool_h, j:j+pool_w].reshape(C, pool_h * pool_w)
+          out_col[:, neuron]  = receprive_field.max(axis=1)
+          neuron += 1
+      out[index] = out_col.reshape(C, outH, outW) 
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -658,8 +725,28 @@ def max_pool_backward_naive(dout, cache):
     # TODO: Implement the max-pooling backward pass                           #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    x, pool_param = cache
+    N, C, H, W = x.shape
+    stride = pool_param['stride']
+    pool_h, pool_w = pool_param['pool_height'], pool_param['pool_width']
+    _, _, outH, outW = dout.shape
 
-    pass
+    dx = np.zeros(x.shape)
+    for index in range(N):
+      # out_col = np.zeros((C, outH*outW))
+      # out[index] = out_col.reshape(C, outH, outW) 
+      dout_row = dout[index].reshape(C, outH * outW)
+      neuron = 0
+      for i in range(0, H - pool_h + 1, stride):
+        for j in range(0, W - pool_w + 1, stride):
+          receprive_field = x[index, :, i:i+pool_h, j:j+pool_w].reshape(C, pool_h * pool_w)
+          max_pool = receprive_field.argmax(axis=1)
+          dout_col = dout_row[:, neuron]
+          neuron += 1
+
+          dmax_pool = np.zeros(receprive_field.shape)
+          dmax_pool[np.arange(C), max_pool] = dout_col
+          dx[index, :, i:i+pool_h, j:j+pool_w] += dmax_pool.reshape(C, pool_h, pool_w)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
